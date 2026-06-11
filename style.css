@@ -1,0 +1,402 @@
+:root {
+  --bg: #08111f;
+  --panel: rgba(15, 23, 42, 0.96);
+  --panel-border: rgba(255, 255, 255, 0.15);
+  --text: #f8fafc;
+  --muted: #cbd5e1;
+  --subtle: #94a3b8;
+  --green: #22c55e;
+  --green-soft: rgba(34, 197, 94, 0.18);
+  --amber: #f59e0b;
+  --amber-soft: rgba(245, 158, 11, 0.18);
+  --red: #ef4444;
+  --red-soft: rgba(239, 68, 68, 0.16);
+  --button: #2563eb;
+  --button-dark: #1d4ed8;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.24), transparent 28%),
+    radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.20), transparent 30%),
+    linear-gradient(135deg, #020617, var(--bg));
+  overflow: hidden;
+}
+
+button, input, textarea { font: inherit; }
+button { border: 0; cursor: pointer; }
+
+/* 1920×1080 모니터 기준 안전 레이아웃 */
+.app,
+.display-screen {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.display-screen {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.status-panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: 92px 110px 112px 78px 146px 1fr 64px;
+  gap: 12px;
+  width: min(100%, 1920px);
+  height: min(100%, 1080px);
+  max-width: 1920px;
+  max-height: 1080px;
+  padding: 28px 36px 44px;
+  border: 2px solid var(--panel-border);
+  border-radius: 34px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.status-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.26;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.status-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.top-bar,
+.bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-width: 0;
+}
+
+.brand-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.badge,
+.mode-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.badge {
+  background: rgba(255,255,255,0.11);
+  color: var(--muted);
+  font-size: 24px;
+}
+
+.mode-label {
+  background: var(--amber-soft);
+  color: #fde68a;
+  font-size: 26px;
+}
+
+.status-panel.active .mode-label {
+  background: var(--green-soft);
+  color: #bbf7d0;
+}
+
+.status-panel.ended .mode-label {
+  background: var(--red-soft);
+  color: #fecaca;
+}
+
+.clock-box {
+  display: grid;
+  justify-items: end;
+  min-width: 260px;
+}
+
+.clock-label {
+  font-size: 22px;
+  color: var(--subtle);
+  font-weight: 700;
+}
+
+.clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 62px;
+  font-weight: 1000;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.signal-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+}
+
+.signal-light {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.8), 0 0 80px rgba(245, 158, 11, 0.35);
+}
+
+.status-panel.active .signal-light {
+  background: var(--green);
+  box-shadow: 0 0 36px rgba(34, 197, 94, 0.9), 0 0 100px rgba(34, 197, 94, 0.42);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-panel.ended .signal-light {
+  background: var(--red);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.7), 0 0 80px rgba(239, 68, 68, 0.28);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  text-align: center;
+  font-size: 88px;
+  line-height: 1.05;
+  font-weight: 1000;
+  letter-spacing: -0.055em;
+  word-break: keep-all;
+  overflow: hidden;
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1540px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 40px;
+  line-height: 1.22;
+  font-weight: 850;
+  word-break: keep-all;
+  overflow: hidden;
+}
+
+.grades-box {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  margin: 0 auto;
+  width: min(100%, 1080px);
+  height: 100%;
+  padding: 16px 28px;
+  border-radius: 28px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.16);
+  overflow: hidden;
+}
+
+.grades-label {
+  color: var(--subtle);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.grades-box strong {
+  font-size: 72px;
+  line-height: 1;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.rule {
+  align-self: center;
+  margin: 0 auto;
+  max-width: 1500px;
+  text-align: center;
+  color: #e0f2fe;
+  font-size: 34px;
+  line-height: 1.22;
+  font-weight: 900;
+  word-break: keep-all;
+  overflow: hidden;
+}
+
+.next-info {
+  color: var(--muted);
+  font-size: 24px;
+  font-weight: 800;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.button-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.small-button,
+.primary-small-button,
+.primary-button,
+.secondary-button {
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.small-button,
+.primary-small-button {
+  padding: 10px 15px;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.primary-small-button,
+.primary-button {
+  color: #fff;
+  background: var(--button);
+}
+
+.primary-small-button:hover,
+.primary-button:hover { background: var(--button-dark); }
+
+.small-button,
+.secondary-button {
+  color: var(--text);
+  background: rgba(255,255,255,0.13);
+}
+
+.small-button:hover,
+.secondary-button:hover { background: rgba(255,255,255,0.21); }
+
+.sound-state {
+  position: absolute;
+  right: 36px;
+  bottom: 12px;
+  z-index: 2;
+  color: var(--subtle);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sound-state.on { color: #bbf7d0; }
+
+.settings-dialog {
+  width: min(720px, calc(100vw - 32px));
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 24px;
+  padding: 0;
+  color: var(--text);
+  background: #0f172a;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+}
+
+.settings-dialog::backdrop { background: rgba(2, 6, 23, 0.74); }
+
+.settings-form {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+}
+
+.settings-form h2 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.settings-description {
+  margin: 0;
+  color: var(--muted);
+}
+
+.settings-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.settings-form input,
+.settings-form textarea {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: var(--text);
+  background: rgba(255,255,255,0.08);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.primary-button,
+.secondary-button { padding: 12px 18px; }
+
+/* 1920×1080보다 작은 환경에서만 비율 축소 */
+@media (max-width: 1400px), (max-height: 820px) {
+  .display-screen { padding: 16px; }
+  .status-panel {
+    grid-template-rows: 74px 82px 88px 64px 116px 1fr 58px;
+    gap: 9px;
+    padding: 22px 26px 40px;
+    border-radius: 26px;
+  }
+  .badge { font-size: 18px; }
+  .mode-label { font-size: 20px; }
+  .clock-label { font-size: 16px; }
+  .clock { font-size: 44px; }
+  .signal-light { width: 70px; height: 70px; }
+  .title { font-size: 58px; }
+  .message { font-size: 28px; max-width: 1100px; }
+  .grades-box { width: min(100%, 820px); padding: 12px 20px; }
+  .grades-label { font-size: 18px; }
+  .grades-box strong { font-size: 48px; }
+  .rule { font-size: 24px; max-width: 1100px; }
+  .next-info { font-size: 18px; }
+  .small-button, .primary-small-button { font-size: 14px; padding: 8px 12px; }
+  .sound-state { font-size: 12px; right: 24px; bottom: 10px; }
+}

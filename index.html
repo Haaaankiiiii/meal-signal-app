@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111827" />
+  <title>급식 전광판</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main id="app" class="app">
+    <section id="displayScreen" class="display-screen">
+      <div id="statusPanel" class="status-panel waiting">
+        <div class="top-bar">
+          <div class="brand-box">
+            <div class="badge">급식 질서 안내</div>
+            <div id="modeLabel" class="mode-label">대기</div>
+          </div>
+          <div class="clock-box" aria-label="현재 시각">
+            <span class="clock-label">현재 시각</span>
+            <div id="clock" class="clock">--:--:--</div>
+          </div>
+        </div>
+
+        <div class="signal-wrap" aria-hidden="true">
+          <div id="signalLight" class="signal-light"></div>
+        </div>
+
+        <h1 id="title" class="title">급식시간 전입니다</h1>
+        <p id="message" class="message">아직 줄 서는 시간이 아닙니다. 표시가 바뀌면 줄을 서 주세요.</p>
+
+        <div class="grades-box">
+          <span class="grades-label">현재 가능 학년</span>
+          <strong id="grades">대기</strong>
+        </div>
+
+        <p id="rule" class="rule">
+          현재 표시된 학년은 모두 같은 순서로 줄 서도 됩니다.<br />
+          앞 학년에게 양보하지 않아도 됩니다.
+        </p>
+
+        <div class="bottom-bar">
+          <div id="nextInfo" class="next-info">다음 변경: --</div>
+          <div class="button-group">
+            <button id="enableSoundButton" class="primary-small-button">소리 켜기</button>
+            <button id="soundTestButton" class="small-button">알림음 테스트</button>
+            <button id="fullscreenButton" class="small-button">전체화면</button>
+            <button id="settingsButton" class="small-button">설정</button>
+          </div>
+        </div>
+
+        <div id="soundState" class="sound-state">알림음 꺼짐 · 운영 전 한 번 “소리 켜기”를 눌러 주세요</div>
+      </div>
+    </section>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form method="dialog" class="settings-form">
+        <h2>전광판 설정</h2>
+        <p class="settings-description">
+          오늘 현장 상황에 맞게 시간을 바꿀 수 있습니다. 이 설정은 현재 기기에 저장됩니다.
+        </p>
+
+        <label>
+          3학년 시작
+          <input id="time3" type="time" required />
+        </label>
+        <label>
+          2학년 시작
+          <input id="time2" type="time" required />
+        </label>
+        <label>
+          1학년 시작
+          <input id="time1" type="time" required />
+        </label>
+        <label>
+          급식 안내 종료
+          <input id="lunchEndAt" type="time" required />
+        </label>
+        <label>
+          공통 안내 문구
+          <textarea id="ruleInput" rows="4" required></textarea>
+        </label>
+
+        <div class="dialog-actions">
+          <button id="resetSettingsButton" type="button" class="secondary-button">기본값 복원</button>
+          <button id="saveSettingsButton" value="save" class="primary-button">저장</button>
+          <button value="cancel" class="secondary-button">닫기</button>
+        </div>
+      </form>
+    </dialog>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

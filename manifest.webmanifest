@@ -1,0 +1,16 @@
+{
+  "name": "급식 전광판",
+  "short_name": "급식전광판",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#08111f",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
