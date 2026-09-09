@@ -27,6 +27,8 @@
   };
 
   var STORAGE_KEY = "meal-signal-settings-v3";
+  var KOREA_TIME_OFFSET_MS = 9 * 60 * 60 * 1000;
+  var NETWORK_TIME_SYNC_INTERVAL_MS = 10 * 60 * 1000;
   var isDemoMode = getQueryParam("demo") === "1";
   var demoStartedAt = Date.now();
   var settings = loadSettings();
@@ -34,6 +36,12 @@
   var soundEnabled = false;
   var audioContext = null;
   var wakeLock = null;
+  var networkClock = {
+    synced: false,
+    serverEpochMs: 0,
+    monotonicMs: 0,
+    deviceOffsetMs: 0
+  };
 
   var elements = {};
 
@@ -86,8 +94,73 @@
     render();
   }
 
+  function monotonicNow() {
+    if (window.performance && typeof window.performance.now === "function") {
+      return window.performance.now();
+    }
+    return null;
+  }
+
+  function currentEpochMs() {
+    if (!networkClock.synced) return Date.now();
+
+    var currentMonotonicMs = monotonicNow();
+    if (currentMonotonicMs !== null) {
+      return networkClock.serverEpochMs + (currentMonotonicMs - networkClock.monotonicMs);
+    }
+    return Date.now() + networkClock.deviceOffsetMs;
+  }
+
+  function currentKoreaTime() {
+    return new Date(currentEpochMs() + KOREA_TIME_OFFSET_MS);
+  }
+
+  function buildTimeProbeUrl() {
+    var base = window.location.href.split("#")[0];
+    var separator = base.indexOf("?") === -1 ? "?" : "&";
+    return base + separator + "_time_sync=" + Date.now();
+  }
+
+  function syncNetworkTime() {
+    if (!window.fetch || window.location.protocol === "file:") return;
+
+    var startedAt = Date.now();
+    var startedMonotonicMs = monotonicNow();
+
+    try {
+      window.fetch(buildTimeProbeUrl(), {
+        method: "HEAD",
+        cache: "no-store"
+      }).then(function (response) {
+        var dateHeader = response.headers && response.headers.get("Date");
+        var serverEpochMs = Date.parse(dateHeader || "");
+        if (!response.ok || !isFinite(serverEpochMs)) {
+          throw new Error("서버 시간 응답을 확인할 수 없습니다.");
+        }
+
+        var finishedAt = Date.now();
+        var finishedMonotonicMs = monotonicNow();
+        var roundTripMs = startedMonotonicMs !== null && finishedMonotonicMs !== null
+          ? Math.max(0, finishedMonotonicMs - startedMonotonicMs)
+          : Math.max(0, finishedAt - startedAt);
+        var estimatedNowMs = serverEpochMs + Math.round(roundTripMs / 2);
+
+        networkClock.synced = true;
+        networkClock.serverEpochMs = estimatedNowMs;
+        networkClock.monotonicMs = finishedMonotonicMs !== null ? finishedMonotonicMs : 0;
+        networkClock.deviceOffsetMs = estimatedNowMs - finishedAt;
+        document.documentElement.setAttribute("data-clock-source", "network");
+        render();
+      }).catch(function () {
+        document.documentElement.setAttribute("data-clock-source", "device");
+      });
+    } catch (e) {
+      document.documentElement.setAttribute("data-clock-source", "device");
+    }
+  }
+
   function minutesOfDay(date) {
-    return date.getHours() * 60 + date.getMinutes();
+    return date.getUTCHours() * 60 + date.getUTCMinutes();
   }
 
   function toMinutes(hhmm) {
@@ -222,7 +295,7 @@
   }
 
   function formatClock(date) {
-    return pad2(date.getHours()) + ":" + pad2(date.getMinutes()) + ":" + pad2(date.getSeconds());
+    return pad2(date.getUTCHours()) + ":" + pad2(date.getUTCMinutes()) + ":" + pad2(date.getUTCSeconds());
   }
 
   function formatNext(next) {
@@ -244,7 +317,7 @@
   }
 
   function render() {
-    var now = new Date();
+    var now = currentKoreaTime();
     var state = getCurrentState(now);
 
     elements.clock.textContent = isDemoMode ? formatClock(now) + " · DEMO" : formatClock(now);
@@ -398,12 +471,18 @@
   }
 
   function clearOldServiceWorkers() {
-    if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.getRegistrations().then(function (registrations) {
-      for (var i = 0; i < registrations.length; i += 1) {
-        registrations[i].unregister();
-      }
-    }).catch(function () {});
+    try {
+      if (!("serviceWorker" in navigator)) return;
+      var serviceWorker = navigator.serviceWorker;
+      if (!serviceWorker || typeof serviceWorker.getRegistrations !== "function") return;
+      serviceWorker.getRegistrations().then(function (registrations) {
+        for (var i = 0; i < registrations.length; i += 1) {
+          registrations[i].unregister();
+        }
+      }).catch(function () {});
+    } catch (e) {
+      console.warn("제한된 iframe에서는 Service Worker 정리를 건너뜁니다.", e);
+    }
   }
 
   function bindEvents() {
@@ -456,10 +535,12 @@
       soundState: $("#soundState")
     };
 
-    clearOldServiceWorkers();
     bindEvents();
     render();
+    clearOldServiceWorkers();
+    syncNetworkTime();
     window.setInterval(render, 1000);
+    window.setInterval(syncNetworkTime, NETWORK_TIME_SYNC_INTERVAL_MS);
   }
 
   if (document.readyState === "loading") {
