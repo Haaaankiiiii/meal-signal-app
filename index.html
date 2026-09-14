@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111827" />
   <title>급식 전광판</title>
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=6" />
 </head>
 <body>
   <main id="app" class="app">
@@ -54,43 +54,41 @@
       </div>
     </section>
 
-    <dialog id="settingsDialog" class="settings-dialog">
-      <form method="dialog" class="settings-form">
-        <h2>전광판 설정</h2>
-        <p class="settings-description">
-          오늘 현장 상황에 맞게 시간을 바꿀 수 있습니다. 이 설정은 현재 기기에 저장됩니다.
-        </p>
-
-        <label>
-          3학년 시작
-          <input id="time3" type="time" required />
-        </label>
-        <label>
-          2학년 시작
-          <input id="time2" type="time" required />
-        </label>
-        <label>
-          1학년 시작
-          <input id="time1" type="time" required />
-        </label>
-        <label>
-          급식 안내 종료
-          <input id="lunchEndAt" type="time" required />
-        </label>
-        <label>
-          공통 안내 문구
-          <textarea id="ruleInput" rows="4" required></textarea>
-        </label>
-
-        <div class="dialog-actions">
-          <button id="resetSettingsButton" type="button" class="secondary-button">기본값 복원</button>
-          <button id="saveSettingsButton" value="save" class="primary-button">저장</button>
-          <button value="cancel" class="secondary-button">닫기</button>
-        </div>
-      </form>
-    </dialog>
   </main>
 
-  <script src="./app.js?v=5"></script>
+  <div id="settingsDialog" class="settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+    <section class="settings-dialog">
+      <form id="settingsForm" class="settings-form" novalidate>
+        <h2 id="settingsTitle">전광판 설정</h2>
+        <div id="settingsMain" class="settings-main">
+          <p class="settings-description">시간을 누른 뒤 시·분 버튼으로 고르세요. 모든 시간은 한국 시간, 24시간 기준입니다.</p>
+          <div class="settings-times">
+            <div class="settings-time-field"><span id="time3Label">3학년 시작</span><button id="time3Button" type="button" class="time-trigger" aria-labelledby="time3Label time3Button" aria-controls="timePicker">12:40</button><input id="time3" type="hidden" value="12:40" /></div>
+            <div class="settings-time-field"><span id="time2Label">2학년 시작</span><button id="time2Button" type="button" class="time-trigger" aria-labelledby="time2Label time2Button" aria-controls="timePicker">12:50</button><input id="time2" type="hidden" value="12:50" /></div>
+            <div class="settings-time-field"><span id="time1Label">1학년 시작</span><button id="time1Button" type="button" class="time-trigger" aria-labelledby="time1Label time1Button" aria-controls="timePicker">13:00</button><input id="time1" type="hidden" value="13:00" /></div>
+            <div class="settings-time-field"><span id="lunchEndAtLabel">급식 안내 종료</span><button id="lunchEndAtButton" type="button" class="time-trigger" aria-labelledby="lunchEndAtLabel lunchEndAtButton" aria-controls="timePicker">13:30</button><input id="lunchEndAt" type="hidden" value="13:30" /></div>
+          </div>
+          <label>공통 안내 문구<textarea id="ruleInput" rows="3"></textarea></label>
+          <p class="settings-description">설정은 이 브라우저에 저장됩니다. 기본값 복원도 저장을 눌러야 적용됩니다.</p>
+          <p id="settingsError" class="settings-error" role="alert" hidden></p>
+          <div class="dialog-actions">
+            <button id="resetSettingsButton" type="button" class="secondary-button">기본값 복원</button>
+            <button id="saveSettingsButton" type="submit" class="primary-button">저장</button>
+            <button id="closeSettingsButton" type="button" class="secondary-button">닫기</button>
+          </div>
+        </div>
+        <section id="timePicker" class="time-picker" aria-labelledby="timePickerTitle" hidden>
+          <div class="time-picker-heading"><h3 id="timePickerTitle">시간 선택</h3><output id="timePickerValue" aria-live="polite">12:40</output></div>
+          <div class="time-picker-columns">
+            <section aria-labelledby="hourChoicesLabel"><h4 id="hourChoicesLabel">시 · 24시간</h4><div id="hourChoices" class="time-choice-grid" role="group" aria-labelledby="hourChoicesLabel"></div></section>
+            <section aria-labelledby="minuteChoicesLabel"><h4 id="minuteChoicesLabel">분</h4><div id="minuteChoices" class="time-choice-grid" role="group" aria-labelledby="minuteChoicesLabel"></div><div class="minute-adjust"><button id="minuteMinus" type="button" class="secondary-button">−1분</button><span id="minuteExact">40분</span><button id="minutePlus" type="button" class="secondary-button">+1분</button></div><p class="settings-description">5분 단위로 고른 뒤 ±1분으로 조절할 수 있어요.</p></section>
+          </div>
+          <div class="dialog-actions"><button id="cancelTimeButton" type="button" class="secondary-button">취소</button><button id="applyTimeButton" type="button" class="primary-button">이 시간 선택</button></div>
+        </section>
+      </form>
+    </section>
+  </div>
+  <div id="settingsFeedback" class="settings-feedback" role="status" aria-live="polite" hidden></div>
+  <script src="./app.js?v=6"></script>
 </body>
 </html>

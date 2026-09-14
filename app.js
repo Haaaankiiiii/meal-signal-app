@@ -44,6 +44,13 @@
   };
 
   var elements = {};
+  var timeFields = ["time3", "time2", "time1", "lunchEndAt"];
+  var timeLabels = ["3학년 시작", "2학년 시작", "1학년 시작", "급식 안내 종료"];
+  var timePickerState = null;
+  var hourButtons = [];
+  var minuteButtons = [];
+  var settingsPreviousOverflow = "";
+  var settingsFeedbackTimer = null;
 
   function $(selector) {
     return document.querySelector(selector);
@@ -86,12 +93,15 @@
 
   function saveSettings(nextSettings) {
     settings = nextSettings;
+    var persisted = true;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
     } catch (e) {
       console.warn("설정 저장 실패:", e);
+      persisted = false;
     }
     render();
+    return persisted;
   }
 
   function monotonicNow() {
@@ -421,18 +431,153 @@
     elements.enableSoundButton.textContent = "소리 켜짐";
   }
 
-  function openSettings() {
-    var sorted = sortSchedule(settings.schedule);
+  function fillSettingsForm(value) {
+    var sorted = sortSchedule(value.schedule);
     elements.time3.value = findByGradeCount(sorted, 1).at;
     elements.time2.value = findByGradeCount(sorted, 2).at;
     elements.time1.value = findByGradeCount(sorted, 3).at;
-    elements.lunchEndAt.value = settings.lunchEndAt || DEFAULT_SETTINGS.lunchEndAt;
-    elements.ruleInput.value = settings.rule;
+    elements.lunchEndAt.value = value.lunchEndAt || DEFAULT_SETTINGS.lunchEndAt;
+    elements.ruleInput.value = value.rule;
+    for (var i = 0; i < timeFields.length; i += 1) {
+      elements[timeFields[i] + "Button"].textContent = elements[timeFields[i]].value;
+    }
+  }
 
-    if (elements.settingsDialog.showModal) {
-      elements.settingsDialog.showModal();
-    } else {
-      alert("이 브라우저에서는 설정 창을 지원하지 않습니다. 최신 Chrome 또는 Edge에서 실행해 주세요.");
+  function openSettings() {
+    if (!elements.settingsDialog.hidden) return;
+    fillSettingsForm(settings);
+    timePickerState = null;
+    elements.settingsMain.hidden = false;
+    elements.timePicker.hidden = true;
+    elements.settingsError.hidden = true;
+    elements.settingsFeedback.hidden = true;
+    elements.settingsDialog.hidden = false;
+    settingsPreviousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    elements.displayScreen.setAttribute("aria-hidden", "true");
+    elements.time3Button.focus();
+  }
+
+  function closeSettings() {
+    timePickerState = null;
+    elements.settingsDialog.hidden = true;
+    elements.timePicker.hidden = true;
+    document.body.style.overflow = settingsPreviousOverflow;
+    elements.displayScreen.removeAttribute("aria-hidden");
+    elements.settingsButton.focus();
+  }
+
+  function twoDigits(value) { return value < 10 ? "0" + value : String(value); }
+
+  function updateTimePicker() {
+    var selected = timePickerState;
+    elements.timePickerValue.textContent = twoDigits(selected.hour) + ":" + twoDigits(selected.minute);
+    elements.minuteExact.textContent = twoDigits(selected.minute) + "분";
+    for (var i = 0; i < hourButtons.length; i += 1) {
+      hourButtons[i].setAttribute("aria-pressed", String(i === selected.hour));
+    }
+    for (var j = 0; j < minuteButtons.length; j += 1) {
+      minuteButtons[j].setAttribute("aria-pressed", String(j * 5 === selected.minute));
+    }
+  }
+
+  function openTimePicker(index) {
+    var raw = elements[timeFields[index]].value;
+    var valid = /^([01]\d|2[0-3]):[0-5]\d$/.test(raw);
+    var parts = (valid ? raw : "12:00").split(":");
+    timePickerState = {index:index, hour:Number(parts[0]), minute:Number(parts[1])};
+    elements.timePickerTitle.textContent = timeLabels[index] + " 시간 선택";
+    elements.settingsMain.hidden = true;
+    elements.timePicker.hidden = false;
+    updateTimePicker();
+    hourButtons[timePickerState.hour].focus();
+  }
+
+  function finishTimePicker(apply) {
+    if (!timePickerState) return;
+    var field = timeFields[timePickerState.index];
+    if (apply) {
+      elements[field].value = twoDigits(timePickerState.hour) + ":" + twoDigits(timePickerState.minute);
+      elements[field + "Button"].textContent = elements[field].value;
+    }
+    timePickerState = null;
+    elements.timePicker.hidden = true;
+    elements.settingsMain.hidden = false;
+    elements[field + "Button"].focus();
+  }
+
+  function createTimeChoice(value, unit) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "time-choice";
+    button.textContent = twoDigits(value);
+    button.setAttribute("aria-label", value + (unit === "hour" ? "시" : "분"));
+    button.onclick = function () {
+      if (!timePickerState) return;
+      timePickerState[unit] = value;
+      updateTimePicker();
+    };
+    return button;
+  }
+
+  function bindTimePicker() {
+    for (var hour = 0; hour < 24; hour += 1) {
+      var hourButton = createTimeChoice(hour, "hour");
+      hourButtons.push(hourButton); elements.hourChoices.appendChild(hourButton);
+    }
+    for (var minute = 0; minute < 60; minute += 5) {
+      var minuteButton = createTimeChoice(minute, "minute");
+      minuteButtons.push(minuteButton); elements.minuteChoices.appendChild(minuteButton);
+    }
+    for (var i = 0; i < timeFields.length; i += 1) {
+      (function (index) { elements[timeFields[index] + "Button"].onclick = function () { openTimePicker(index); }; }(i));
+    }
+    // Minute adjustment is independent of the chosen hour, like a time wheel.
+    elements.minuteMinus.onclick = function () { if (timePickerState) { timePickerState.minute = (timePickerState.minute + 59) % 60; updateTimePicker(); } };
+    elements.minutePlus.onclick = function () { if (timePickerState) { timePickerState.minute = (timePickerState.minute + 1) % 60; updateTimePicker(); } };
+    elements.applyTimeButton.onclick = function () { finishTimePicker(true); };
+    elements.cancelTimeButton.onclick = function () { finishTimePicker(false); };
+  }
+
+  function validateSchedule(next) {
+    var times = [next.schedule[0].at, next.schedule[1].at, next.schedule[2].at, next.lunchEndAt];
+    for (var i = 0; i < times.length; i += 1) {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(times[i])) return "00:00~23:59 사이의 시간을 골라 주세요.";
+    }
+    if (times[0] > times[1] || times[1] > times[2] || times[2] >= times[3]) {
+      return "3학년 → 2학년 → 1학년 순서로 정하고, 종료는 마지막 입장보다 늦게 정해 주세요. 같은 시각 입장은 가능합니다.";
+    }
+    return "";
+  }
+
+  function submitSettings(event) {
+    event.preventDefault();
+    if (timePickerState) { finishTimePicker(true); return; }
+    var next = buildSettingsFromForm();
+    var error = validateSchedule(next);
+    elements.settingsError.textContent = error;
+    elements.settingsError.hidden = !error;
+    if (error) return;
+    var persisted = saveSettings(next);
+    closeSettings();
+    elements.settingsFeedback.textContent = persisted ? "시간표를 저장했습니다." : "현재 화면에만 적용했습니다. 브라우저가 저장을 허용하지 않아 새로고침하면 원래 시간표로 돌아갑니다.";
+    elements.settingsFeedback.hidden = false;
+    window.clearTimeout(settingsFeedbackTimer);
+    settingsFeedbackTimer = window.setTimeout(function () { elements.settingsFeedback.hidden = true; }, persisted ? 4000 : 12000);
+  }
+
+  function settingsKeydown(event) {
+    if (event.key === "Escape" || event.keyCode === 27) {
+      event.preventDefault();
+      if (timePickerState) finishTimePicker(false); else closeSettings();
+    }
+    if (event.key === "Tab" || event.keyCode === 9) {
+      var area = timePickerState ? elements.timePicker : elements.settingsMain;
+      var controls = area.querySelectorAll("button:not([disabled]), textarea:not([disabled])");
+      if (!controls.length) return;
+      var first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
   }
 
@@ -495,14 +640,13 @@
     };
     elements.fullscreenButton.onclick = requestFullscreen;
     elements.settingsButton.onclick = openSettings;
-    elements.saveSettingsButton.onclick = function () {
-      saveSettings(buildSettingsFromForm());
-    };
+    elements.settingsForm.onsubmit = submitSettings;
+    elements.closeSettingsButton.onclick = closeSettings;
+    elements.settingsDialog.addEventListener("keydown", settingsKeydown);
+    bindTimePicker();
     elements.resetSettingsButton.onclick = function () {
-      try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-      settings = clone(DEFAULT_SETTINGS);
-      openSettings();
-      render();
+      fillSettingsForm(DEFAULT_SETTINGS);
+      elements.settingsError.hidden = true;
     };
 
     document.addEventListener("visibilitychange", function () {
@@ -525,6 +669,26 @@
       fullscreenButton: $("#fullscreenButton"),
       settingsButton: $("#settingsButton"),
       settingsDialog: $("#settingsDialog"),
+      displayScreen: $("#displayScreen"),
+      settingsForm: $("#settingsForm"),
+      settingsMain: $("#settingsMain"),
+      settingsError: $("#settingsError"),
+      settingsFeedback: $("#settingsFeedback"),
+      closeSettingsButton: $("#closeSettingsButton"),
+      time3Button: $("#time3Button"),
+      time2Button: $("#time2Button"),
+      time1Button: $("#time1Button"),
+      lunchEndAtButton: $("#lunchEndAtButton"),
+      timePicker: $("#timePicker"),
+      timePickerTitle: $("#timePickerTitle"),
+      timePickerValue: $("#timePickerValue"),
+      hourChoices: $("#hourChoices"),
+      minuteChoices: $("#minuteChoices"),
+      minuteMinus: $("#minuteMinus"),
+      minutePlus: $("#minutePlus"),
+      minuteExact: $("#minuteExact"),
+      applyTimeButton: $("#applyTimeButton"),
+      cancelTimeButton: $("#cancelTimeButton"),
       time3: $("#time3"),
       time2: $("#time2"),
       time1: $("#time1"),
